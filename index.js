@@ -31,12 +31,11 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CLAVE: Reducimos el tamaño del SVG a un valor seguro (ej. 800x1400)
-        // para que Sharp lo acepte. Tu imagen base tiene ~722x1280.
+        // AJUSTE CLAVE: Usamos 'sans-serif' y dimensiones seguras para el SVG (800x1400)
         const svgText = `
             <svg width="800" height="1400"> 
                 <text x="${coord.x}" y="${coord.y}" 
-                    font-family="Arial, sans-serif" 
+                    font-family="sans-serif"  <-- ¡CORRECCIÓN DE FUENTE!
                     font-size="${FONT_SIZE}" 
                     fill="${FONT_COLOR}" 
                     text-anchor="end"> 
@@ -53,7 +52,6 @@ async function generateTasaImage(payload) {
     }
 
     // Componer la imagen y devolver el buffer
-    // Esto es el último punto de fallo.
     try {
         return await sharp(baseImageBuffer, { limitInputPixels: false }) 
             .composite(svgLayers) 
@@ -61,7 +59,6 @@ async function generateTasaImage(payload) {
             .toBuffer();
     } catch (e) {
         console.error("Error de Sharp al procesar la imagen:", e.message);
-        // Devolvemos el error específico de Sharp
         throw new Error(`Sharp error: ${e.message}`);
     }
 }
@@ -81,7 +78,6 @@ app.post('/generate-tasa', async (req, res) => {
         res.set('Content-Type', 'image/jpeg');
         res.send(imageBuffer);
     } catch (error) {
-        // Captura el error de Sharp y lo envía al log de n8n
         res.status(500).send(`Error interno: ${error.message}`);
     }
 });
