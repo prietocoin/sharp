@@ -33,17 +33,10 @@ async function generateTasaImage(payload) {
 
         // CORRECCIÓN CLAVE: El bloque SVG se escribe de forma segura.
         // Se utilizan dimensiones seguras (800x1400) y fuente 'sans-serif'.
-        const svgText = `
-<svg width="800" height="1400">
-    <text x="${coord.x}" y="${coord.y}"
-        font-family="sans-serif"
-        font-size="${FONT_SIZE}"
-        fill="${FONT_COLOR}"
-        text-anchor="end">
-        ${valor}
-    </text>
-</svg>`;
-
+        // CÓDIGO CORREGIDO para index.js
+// CÓDIGO CORREGIDO para index.js
+const svgText = `
+<svg width="800" height="1400"><text x="${coord.x}" y="${coord.y}" font-family="sans-serif" font-size="${FONT_SIZE}" fill="${FONT_COLOR}" text-anchor="end">${valor}</text></svg>`;
         svgLayers.push({
             input: Buffer.from(svgText),
             left: 0,
