@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 
 # Copia los archivos de configuración
 COPY package*.json ./
-COPY plantilla_tasas.jpeg .
+COPY plantilla-tasas1.jpeg .
 
 # Instala las dependencias (¡incluyendo Sharp!)
 RUN npm install
