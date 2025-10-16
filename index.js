@@ -31,8 +31,10 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
+        // AJUSTE CLAVE: Reducimos el tamaño del SVG a un valor seguro (ej. 800x1400)
+        // para que Sharp lo acepte. Tu imagen base tiene ~722x1280.
         const svgText = `
-            <svg width="1000" height="1000"> 
+            <svg width="800" height="1400"> 
                 <text x="${coord.x}" y="${coord.y}" 
                     font-family="Arial, sans-serif" 
                     font-size="${FONT_SIZE}" 
@@ -51,7 +53,7 @@ async function generateTasaImage(payload) {
     }
 
     // Componer la imagen y devolver el buffer
-    // CLAVE: Usamos { limitInputPixels: false } para aumentar la tolerancia de Sharp
+    // Esto es el último punto de fallo.
     try {
         return await sharp(baseImageBuffer, { limitInputPixels: false }) 
             .composite(svgLayers) 
@@ -59,8 +61,8 @@ async function generateTasaImage(payload) {
             .toBuffer();
     } catch (e) {
         console.error("Error de Sharp al procesar la imagen:", e.message);
-        // Devolvemos un error 500 con el mensaje específico de Sharp
-        throw new Error(`Input buffer contains unsupported image format. Sharp error: ${e.message}`);
+        // Devolvemos el error específico de Sharp
+        throw new Error(`Sharp error: ${e.message}`);
     }
 }
 
@@ -69,9 +71,8 @@ app.post('/generate-tasa', async (req, res) => {
     try {
         const payload = req.body;
         
-        // Verificación de existencia (para evitar 400s innecesarios)
+        // Verificación de existencia
         if (!payload.tasas || !payload.coordenadas || !payload.imagen_base_b64) {
-            // Este mensaje ya lo recibimos, ahora sabemos que la data sí llega
             return res.status(400).send("Faltan 'tasas', 'coordenadas' o 'imagen_base_b64' en el cuerpo.");
         }
 
@@ -80,7 +81,7 @@ app.post('/generate-tasa', async (req, res) => {
         res.set('Content-Type', 'image/jpeg');
         res.send(imageBuffer);
     } catch (error) {
-        // Captura el error de Sharp o el error de lógica
+        // Captura el error de Sharp y lo envía al log de n8n
         res.status(500).send(`Error interno: ${error.message}`);
     }
 });
