@@ -1,70 +1,89 @@
-// Paso 1: Obtener las tasas (del nodo 3: "Get Rates")
-// El JSON del API viene como un array: [{COP: '14.86', ...}]
-const tasasObj = $node["Get Rates"].json[0]; 
+const express = require('express');
+const sharp = require('sharp');
+const fs = require('fs');
 
-// Paso 2: Definir las coordenadas y su respectivo Mapeo de la API
-// { "nombre_de_campo_plantilla": { x: 950, y: 110, api_key: "COP" } }
-const MAPPING_CONFIG = {
-    // Tasa 1: Colombia (COP)
-    colombia: { x: 950, y: 110, api_key: "COP" }, 
-    
-    // Tasa 2: Brasil (BRL)
-    brasil: { x: 950, y: 225, api_key: "BRL" }, 
-    
-    // Tasa 3: Perú (S/.)
-    peru: { x: 950, y: 340, api_key: "PEN" }, // ¡Ahora usa PEN!
-    
-    // Tasa 4: Chile (CLP)
-    chile: { x: 950, y: 455, api_key: "CLP" },
-    
-    // Tasa 5: EE.UU. (USD)
-    eeuu: { x: 950, y: 570, api_key: "USD" },
-    
-    // Tasa 6: México (MXN)
-    mexico: { x: 950, y: 685, api_key: "MXN" },
-    
-    // Tasa 7: Ecuador (ECU)
-    ecuador: { x: 950, y: 795, api_key: "ECU" }, // ¡Ahora usa ECU!
-    
-    // Tasa 8: Euros (EUR)
-    euros: { x: 950, y: 910, api_key: "EUR" },
-    
-    // Ejemplo opcional (Argentina), si quieres mapear en un lugar que ya existe, por ejemplo, donde iba VES
-    // argentina: { x: 950, y: 1025, api_key: "ARS" },
-};
+const app = express();
+const PORT = 3000; 
 
-// Paso 3: Extraer solo las coordenadas y los valores de la API para el payload
+// Aumentamos el límite de cuerpo para aceptar buffers de imágenes grandes
+// ¡IMPORTANTE! n8n enviará la imagen en este cuerpo.
+app.use(express.json({ limit: '5mb' })); 
 
-let coordenadas_sharp = {}; // Solo X e Y
-let tasas_sharp = {};       // Clave de Plantilla: Valor de Tasa
-
-for (const [clave_plantilla, config] of Object.entries(MAPPING_CONFIG)) {
-    const { x, y, api_key } = config;
-
-    // 1. Añade la coordenada (X, Y) para el motor Sharp
-    coordenadas_sharp[clave_plantilla] = { x, y };
+// --- FUNCIÓN DE GENERACIÓN DE IMAGEN ---
+async function generateTasaImage(payload) {
     
-    // 2. Añade el valor de la tasa de la API, usando la api_key definida
-    tasas_sharp[clave_plantilla] = tasasObj[api_key] || "N/A";
+    const { tasas, coordenadas, config } = payload;
+    
+    // CLAVE: Recibimos el Buffer de la imagen base como un string Base64
+    const baseImageBase64 = payload.imagen_base_b64; 
+    
+    if (!baseImageBase64) {
+        throw new Error("El payload no contiene 'imagen_base_b64'.");
+    }
+
+    // Convertir el string Base64 de vuelta a un Buffer binario para Sharp
+    const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
+    
+    // Configuración de diseño por defecto (se puede sobrescribir desde n8n)
+    const { FONT_SIZE = 48, FONT_COLOR = '#FFFFFF' } = config || {};
+
+    let svgLayers = [];
+    
+    // ITERAMOS sobre las coordenadas (CLAVE = nombre de campo definido en n8n)
+    for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
+        
+        // 1. Obtener el valor de la tasa del objeto 'tasas'
+        //    (Las claves en 'tasas' deben coincidir con las claves de 'coordenadas' que enviamos desde n8n)
+        const valor = tasas[clave_plantilla] || "N/A"; 
+
+        // 2. Crear el SVG
+        const svgText = `
+            <svg width="1000" height="1000"> 
+                <text x="${coord.x}" y="${coord.y}" 
+                    font-family="Arial, sans-serif" 
+                    font-size="${FONT_SIZE}" 
+                    fill="${FONT_COLOR}" 
+                    text-anchor="end"> 
+                    ${valor}
+                </text>
+            </svg>
+        `;
+
+        svgLayers.push({
+            input: Buffer.from(svgText),
+            left: 0,
+            top: 0
+        });
+    }
+
+    // 3. Componer la imagen y devolver el buffer
+    return sharp(baseImageBuffer) 
+        .composite(svgLayers) 
+        .toFormat('jpeg')
+        .toBuffer();
 }
 
+// --- RUTA API (LLAMADA POR N8N) ---
+app.post('/generate-tasa', async (req, res) => {
+    try {
+        const payload = req.body;
+        
+        if (!payload.tasas || !payload.coordenadas || !payload.imagen_base_b64) {
+            return res.status(400).send("Faltan 'tasas', 'coordenadas' o 'imagen_base_b64' en el cuerpo.");
+        }
 
-// Paso 4: Definir la configuración de diseño
-const config_diseno = {
-    FONT_SIZE: 48,
-    FONT_COLOR: '#FFFFFF'
-};
-
-// Paso 5: Obtener la imagen Base64 (del nodo 2: "Get Image")
-const imageBinary = $node["Get Image"].binary.data; 
-const imageBase64 = imageBinary.toString('base64'); 
-
-// Paso 6: Crear el payload final
-return [{
-    json: {
-        tasas: tasas_sharp, // {colombia: "14.86", brasil: "48.73", ...}
-        coordenadas: coordenadas_sharp, // {colombia: {x: 950, y: 110}, ...}
-        config: config_diseno,
-        imagen_base_b64: imageBase64 
+        const imageBuffer = await generateTasaImage(payload);
+        
+        // Enviamos la imagen con el Content-Type correcto
+        res.set('Content-Type', 'image/jpeg');
+        res.send(imageBuffer);
+    } catch (error) {
+        console.error("Error al generar la imagen:", error.message);
+        // Devolvemos el error en texto para poder debuguear en n8n
+        res.status(500).send(`Error interno: ${error.message}`);
     }
-}];
+});
+
+app.listen(PORT, () => {
+    console.log(`Microservicio Sharp corriendo en puerto ${PORT}`);
+});
