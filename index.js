@@ -31,12 +31,18 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // CORRECCIÓN CLAVE: El bloque SVG se escribe de forma segura.
-        // Se utilizan dimensiones seguras (800x1400) y fuente 'sans-serif'.
-        // CÓDIGO CORREGIDO para index.js
-// CÓDIGO CORREGIDO para index.js
-const svgText = `
-<svg width="800" height="1400"><text x="${coord.x}" y="${coord.y}" font-family="sans-serif" font-size="${FONT_SIZE}" fill="${FONT_COLOR}" text-anchor="end">${valor}</text></svg>`;
+        // AJUSTE CRÍTICO: Se utiliza sintaxis SVG segura y dimensiones seguras (800x1400)
+        const svgText = `
+<svg width="800" height="1400">
+    <text x="${coord.x}" y="${coord.y}" 
+        font-family="sans-serif" 
+        font-size="${FONT_SIZE}" 
+        fill="${FONT_COLOR}" 
+        text-anchor="end">
+        ${valor}
+    </text>
+</svg>`;
+
         svgLayers.push({
             input: Buffer.from(svgText),
             left: 0,
