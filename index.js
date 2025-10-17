@@ -5,12 +5,15 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000; 
 
+// Aumentamos el límite de cuerpo para aceptar buffers de imágenes grandes
 app.use(express.json({ limit: '10mb' })); 
 
 // --- FUNCIÓN DE GENERACIÓN DE IMAGEN ---
 async function generateTasaImage(payload) {
     
     const { tasas, coordenadas, config } = payload;
+    
+    // Convertir el string Base64 a un Buffer binario
     const baseImageBase64 = payload.imagen_base_b64; 
     
     if (!baseImageBase64) {
@@ -19,19 +22,22 @@ async function generateTasaImage(payload) {
 
     const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
     
-    const { FONT_SIZE = 72 } = config || {}; 
-    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO
+    // Definimos el color final (NEGRO)
+    const FINAL_COLOR = "rgb(0, 0, 0)"; 
 
     let svgLayers = [];
     
+    // ITERAMOS sobre las coordenadas
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CLAVE: Usamos 'Oswald Bold' (el nombre de la fuente instalada) y eliminamos letter-spacing
-        // para que la fuente angosta haga el trabajo por sí misma.
+        // AJUSTE CLAVE: Usamos coord.size o un valor por defecto seguro.
+        const fontSizeForText = coord.size || 72; 
+
+        // SINTAXIS FINAL: Oswald Bold
         const svgText = '<svg width="800" height="1400">' + 
             '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
-            'font-family="Oswald Bold" font-weight="bold" font-size="' + FONT_SIZE + '" ' + 
+            'font-family="Oswald Bold" font-weight="bold" font-size="' + fontSizeForText + '" ' + 
             'fill="' + FINAL_COLOR + '" text-anchor="end">' + 
             valor +
             '</text></svg>';
@@ -60,6 +66,7 @@ app.post('/generate-tasa', async (req, res) => {
     try {
         const payload = req.body;
         
+        // Verificación de existencia
         if (!payload.tasas || !payload.coordenadas || !payload.imagen_base_b64) {
             return res.status(400).send("Faltan 'tasas', 'coordenadas' o 'imagen_base_b64' en el cuerpo.");
         }
