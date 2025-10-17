@@ -24,7 +24,7 @@ async function generateTasaImage(payload) {
     
     // Configuraciones de estilo finales
     const { FONT_SIZE = 72 } = config || {}; 
-    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO
+    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO: para el contraste en el cuadro blanco
 
     let svgLayers = [];
     
@@ -32,10 +32,11 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CLAVE: Se añade font-weight="bold" al SVG
+        // AJUSTE CLAVE: Usamos 'font-weight="bold"' y 'letter-spacing="-1"'
         const svgText = '<svg width="800" height="1400">' + 
             '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
             'font-family="sans-serif" font-weight="bold" font-size="' + FONT_SIZE + '" ' + 
+            'letter-spacing="-1" ' +  // Simula el estilo angosto
             'fill="' + FINAL_COLOR + '" text-anchor="end">' + 
             valor +
             '</text></svg>';
