@@ -13,7 +13,7 @@ async function generateTasaImage(payload) {
     
     const { tasas, coordenadas, config } = payload;
     
-    // Convertir el string Base64 a un Buffer binario
+    // Verificación de Base64
     const baseImageBase64 = payload.imagen_base_b64; 
     
     if (!baseImageBase64) {
@@ -22,22 +22,28 @@ async function generateTasaImage(payload) {
 
     const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
     
-    // Definimos el color final (NEGRO)
-    const FINAL_COLOR = "rgb(0, 0, 0)"; 
+    // Definiciones de estilo
+    const { FONT_SIZE = 90 } = config || {}; // Aumentamos la fuente base a 90px para 1080px de ancho
+    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO
 
     let svgLayers = [];
+
+    // DIMENSIONES ESTÁNDAR DEL LIENZO (Post de Instagram 1080x1350)
+    const STANDARD_WIDTH = 1080; 
+    const STANDARD_HEIGHT = 1350;
+
+    // DIMENSIONES SEGURAS DEL SVG (Ligeramente más grandes que el lienzo)
+    const SVG_WIDTH = 1100;
+    const SVG_HEIGHT = 1400;
     
     // ITERAMOS sobre las coordenadas
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CLAVE: Usamos coord.size o un valor por defecto seguro.
-        const fontSizeForText = coord.size || 72; 
-
-        // SINTAXIS FINAL: Oswald Bold
-        const svgText = '<svg width="800" height="1400">' + 
+        // AJUSTE CLAVE: Usamos las dimensiones seguras del SVG
+        const svgText = '<svg width="' + SVG_WIDTH + '" height="' + SVG_HEIGHT + '">' + 
             '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
-            'font-family="Oswald Bold" font-weight="bold" font-size="' + fontSizeForText + '" ' + 
+            'font-family="Oswald Bold" font-weight="bold" font-size="' + FONT_SIZE + '" ' + 
             'fill="' + FINAL_COLOR + '" text-anchor="end">' + 
             valor +
             '</text></svg>';
@@ -51,10 +57,20 @@ async function generateTasaImage(payload) {
 
     // Componer la imagen y devolver el buffer
     try {
-        return await sharp(baseImageBuffer, { limitInputPixels: false }) 
+        // PASO 1: Redimensionar la imagen de entrada al estándar 1080x1350
+        const resizedImageBuffer = await sharp(baseImageBuffer, { limitInputPixels: false })
+            .resize(STANDARD_WIDTH, STANDARD_HEIGHT, {
+                fit: 'contain', 
+                background: { r: 0, g: 0, b: 0, alpha: 0 } 
+            })
+            .toBuffer();
+
+        // PASO 2: Superponer el SVG sobre el lienzo redimensionado
+        return await sharp(resizedImageBuffer) 
             .composite(svgLayers) 
             .toFormat('jpeg')
             .toBuffer();
+
     } catch (e) {
         console.error("Error de Sharp al procesar la imagen:", e.message);
         throw new Error(`Sharp error: ${e.message}`);
