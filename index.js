@@ -5,6 +5,7 @@ const fs = require('fs');
 const app = express();
 const PORT = 3000; 
 
+// Aumentamos el límite de cuerpo para aceptar buffers de imágenes grandes
 app.use(express.json({ limit: '10mb' })); 
 
 // --- FUNCIÓN DE GENERACIÓN DE IMAGEN ---
@@ -12,6 +13,7 @@ async function generateTasaImage(payload) {
     
     const { tasas, coordenadas, config } = payload;
     
+    // Verificación de Base64
     const baseImageBase64 = payload.imagen_base_b64; 
     
     if (!baseImageBase64) {
@@ -21,27 +23,27 @@ async function generateTasaImage(payload) {
     const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
     
     // Definiciones de estilo
-    const FINAL_COLOR = "rgb(0, 0, 0)"; 
-    const FONT_SIZE_FALLBACK = 72; 
+    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO
+    const FONT_SIZE_FALLBACK = 72; // Valor por defecto
 
     let svgLayers = [];
 
-    // DIMENSIONES ESTÁNDAR DEL LIENZO (Post de Instagram)
+    // Dimensiones estándar de Instagram
     const STANDARD_WIDTH = 1080; 
     const STANDARD_HEIGHT = 1350;
 
-    // AJUSTE CRÍTICO: RESTAURAMOS LAS DIMENSIONES ANTERIORES QUE FUNCIONABAN 
-    // PARA EL SVG, ya que el contenedor lo toleraba.
-    const SVG_WIDTH = 1100; // Restaurado
-    const SVG_HEIGHT = 1400; // Restaurado
+    // AJUSTE CRÍTICO: El SVG DEBE ser IGUAL al lienzo estándar para evitar el error de dimensión
+    const SVG_WIDTH = STANDARD_WIDTH; // 1080
+    const SVG_HEIGHT = STANDARD_HEIGHT; // 1350
     
     // ITERAMOS sobre las coordenadas
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
+        // Extraemos el tamaño dinámico (size libre)
         const fontSizeForText = coord.size || FONT_SIZE_FALLBACK; 
 
-        // SINTAXIS FINAL: Oswald Bold
+        // SINTAXIS FINAL: Oswald Bold. Usamos las variables SVG_WIDTH/HEIGHT.
         const svgText = '<svg width="' + SVG_WIDTH + '" height="' + SVG_HEIGHT + '">' + 
             '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
             'font-family="Oswald Bold" font-weight="bold" font-size="' + fontSizeForText + '" ' + 
