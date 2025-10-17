@@ -24,7 +24,7 @@ async function generateTasaImage(payload) {
     
     // Configuraciones de estilo finales
     const { FONT_SIZE = 72 } = config || {}; 
-    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO: para contraste en cuadros blancos
+    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO
 
     let svgLayers = [];
     
@@ -32,7 +32,7 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CRÍTICO: Sintaxis SVG segura y simple. Usa 'sans-serif' que instalamos.
+        // AJUSTE CLAVE: Usamos 'sans-serif' que ya está instalada.
         const svgText = '<svg width="800" height="1400">' + 
             '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
             'font-family="sans-serif" font-size="' + FONT_SIZE + '" ' + 
