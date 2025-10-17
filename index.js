@@ -33,8 +33,8 @@ async function generateTasaImage(payload) {
     const STANDARD_HEIGHT = 1350;
 
     // DIMENSIONES SEGURAS DEL SVG (Ligeramente más grandes que el lienzo)
-    const SVG_WIDTH = 1100;
-    const SVG_HEIGHT = 1400;
+   const SVG_WIDTH = STANDARD_WIDTH; 
+    const SVG_HEIGHT = STANDARD_HEIGHT;
     
     // ITERAMOS sobre las coordenadas
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
