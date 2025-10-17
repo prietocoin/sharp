@@ -23,27 +23,27 @@ async function generateTasaImage(payload) {
     const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
     
     // Definiciones de estilo
-    const { FONT_SIZE = 90 } = config || {}; // Aumentamos la fuente base a 90px para 1080px de ancho
     const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO
+    // Definimos el FALLBACK si no se envía ningún tamaño específico
+    const FONT_SIZE_FALLBACK = 90; 
 
     let svgLayers = [];
 
-    // DIMENSIONES ESTÁNDAR DEL LIENZO (Post de Instagram 1080x1350)
-    const STANDARD_WIDTH = 1080; 
-    const STANDARD_HEIGHT = 1350;
-
-    // DIMENSIONES SEGURAS DEL SVG (Ligeramente más grandes que el lienzo)
-   const SVG_WIDTH = STANDARD_WIDTH; 
-    const SVG_HEIGHT = STANDARD_HEIGHT;
+    // Dimensiones seguras del SVG
+    const SVG_WIDTH = 1100;
+    const SVG_HEIGHT = 1400;
     
     // ITERAMOS sobre las coordenadas
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CLAVE: Usamos las dimensiones seguras del SVG
+        // AJUSTE CLAVE CORREGIDO: Extraemos el tamaño directamente de 'coord'
+        const fontSizeForText = coord.size || FONT_SIZE_FALLBACK; // ESTO HACE QUE EL TAMAÑO SEA LIBRE
+
+        // SINTAXIS FINAL: Oswald Bold
         const svgText = '<svg width="' + SVG_WIDTH + '" height="' + SVG_HEIGHT + '">' + 
             '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
-            'font-family="Oswald Bold" font-weight="bold" font-size="' + FONT_SIZE + '" ' + 
+            'font-family="Oswald Bold" font-weight="bold" font-size="' + fontSizeForText + '" ' + // <<<-- USA EL VALOR DINÁMICO
             'fill="' + FINAL_COLOR + '" text-anchor="end">' + 
             valor +
             '</text></svg>';
@@ -58,6 +58,9 @@ async function generateTasaImage(payload) {
     // Componer la imagen y devolver el buffer
     try {
         // PASO 1: Redimensionar la imagen de entrada al estándar 1080x1350
+        const STANDARD_WIDTH = 1080; 
+        const STANDARD_HEIGHT = 1350;
+
         const resizedImageBuffer = await sharp(baseImageBuffer, { limitInputPixels: false })
             .resize(STANDARD_WIDTH, STANDARD_HEIGHT, {
                 fit: 'contain', 
