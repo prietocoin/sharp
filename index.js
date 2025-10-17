@@ -13,17 +13,18 @@ async function generateTasaImage(payload) {
     
     const { tasas, coordenadas, config } = payload;
     
-    // Convertir el string Base64 de vuelta a un Buffer binario para Sharp
+    // Convertir el string Base64 a un Buffer binario
     const baseImageBase64 = payload.imagen_base_b64; 
     
     if (!baseImageBase64) {
         throw new Error("El payload no contiene 'imagen_base_b64'.");
     }
 
-    // Convertimos la cadena Base64 a un Buffer
     const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
     
-    const { FONT_SIZE = 48, FONT_COLOR = '#FFFFFF' } = config || {};
+    const { FONT_SIZE = 48 } = config || {};
+    // Color forzado a ROJO para el diagnóstico. Si aparece, cambiamos a blanco.
+    const DIAGNOSTIC_COLOR = "rgb(255, 0, 0)"; 
 
     let svgLayers = [];
     
@@ -31,13 +32,13 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CRÍTICO: Se utiliza sintaxis SVG segura y dimensiones seguras (800x1400)
+        // AJUSTE CRÍTICO: Sintaxis SVG segura, fuente genérica y color ROJO de diagnóstico.
         const svgText = `
 <svg width="800" height="1400">
     <text x="${coord.x}" y="${coord.y}" 
         font-family="sans-serif" 
         font-size="${FONT_SIZE}" 
-        fill="${FONT_COLOR}" 
+        fill="${DIAGNOSTIC_COLOR}"  <-- ¡COLOR DE DIAGNÓSTICO!
         text-anchor="end">
         ${valor}
     </text>
