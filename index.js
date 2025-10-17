@@ -23,7 +23,7 @@ async function generateTasaImage(payload) {
     const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
     
     const { FONT_SIZE = 48 } = config || {};
-    // Color forzado a ROJO para el diagnóstico. Si aparece, cambiamos a blanco.
+    // Color forzado a ROJO para el diagnóstico. Si funciona, se cambia a blanco.
     const DIAGNOSTIC_COLOR = "rgb(255, 0, 0)"; 
 
     let svgLayers = [];
@@ -32,17 +32,13 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CRÍTICO: Sintaxis SVG segura, fuente genérica y color ROJO de diagnóstico.
-        const svgText = `
-<svg width="800" height="1400">
-    <text x="${coord.x}" y="${coord.y}" 
-        font-family="sans-serif" 
-        font-size="${FONT_SIZE}" 
-        fill="${DIAGNOSTIC_COLOR}"  <-- ¡COLOR DE DIAGNÓSTICO!
-        text-anchor="end">
-        ${valor}
-    </text>
-</svg>`;
+        // AJUSTE CLAVE: Concatenación simple para evitar errores de sintaxis XML/SVG.
+        const svgText = '<svg width="800" height="1400">' + 
+            '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
+            'font-family="sans-serif" font-size="' + FONT_SIZE + '" ' + 
+            'fill="' + DIAGNOSTIC_COLOR + '" text-anchor="end">' + 
+            valor +
+            '</text></svg>';
 
         svgLayers.push({
             input: Buffer.from(svgText),
@@ -59,6 +55,7 @@ async function generateTasaImage(payload) {
             .toBuffer();
     } catch (e) {
         console.error("Error de Sharp al procesar la imagen:", e.message);
+        // El error ahora debería ser solo si la imagen base está corrupta.
         throw new Error(`Sharp error: ${e.message}`);
     }
 }
