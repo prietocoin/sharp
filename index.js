@@ -22,8 +22,9 @@ async function generateTasaImage(payload) {
 
     const baseImageBuffer = Buffer.from(baseImageBase64, 'base64');
     
-    const { FONT_SIZE = 72 } = config || {}; // Usamos 72 como tamaño base
-    const FINAL_COLOR = "rgb(0, 0, 0)"; // Color NEGRO para contraste en cuadros blancos
+    // Configuraciones de estilo finales
+    const { FONT_SIZE = 72 } = config || {}; 
+    const FINAL_COLOR = "rgb(0, 0, 0)"; // NEGRO: para contraste en cuadros blancos
 
     let svgLayers = [];
     
@@ -31,17 +32,13 @@ async function generateTasaImage(payload) {
     for (const [clave_plantilla, coord] of Object.entries(coordenadas)) {
         const valor = tasas[clave_plantilla] || "N/A"; 
 
-        // AJUSTE CRÍTICO: Eliminamos 'font-family' para usar la fuente por defecto del sistema
-        // que sí renderiza los números (resolviendo el problema de los cuadros).
-        const svgText = `
-<svg width="800" height="1400">
-    <text x="${coord.x}" y="${coord.y}" 
-        font-size="${FONT_SIZE}" 
-        fill="${FINAL_COLOR}" 
-        text-anchor="end">
-        ${valor}
-    </text>
-</svg>`;
+        // AJUSTE CRÍTICO: Sintaxis SVG segura y simple. Usa 'sans-serif' que instalamos.
+        const svgText = '<svg width="800" height="1400">' + 
+            '<text x="' + coord.x + '" y="' + coord.y + '" ' + 
+            'font-family="sans-serif" font-size="' + FONT_SIZE + '" ' + 
+            'fill="' + FINAL_COLOR + '" text-anchor="end">' + 
+            valor +
+            '</text></svg>';
 
         svgLayers.push({
             input: Buffer.from(svgText),
